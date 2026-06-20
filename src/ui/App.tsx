@@ -80,18 +80,24 @@ export function App() {
   return (
     <div className="page-scene">
       <Topbar />
-      <main className="studio-layout">
-        <section className="editor-panel" aria-label="Scheme editor">
-          <WorkspaceTabs />
-          <EditorToolbar />
-          <Properties />
-          <PaletteCard />
-        </section>
-        <aside className="preview-panel" aria-label="Live preview">
-          <Preview />
-          <Export />
-        </aside>
-      </main>
+      <div className="desk">
+        <div className="sheet">
+          <div className="workspace-bar">
+            <WorkspaceTabs />
+          </div>
+          <main className="studio-layout">
+            <section className="editor-panel" aria-label="Scheme editor">
+              <EditorToolbar />
+              <Properties />
+              <PaletteCard />
+            </section>
+            <aside className="preview-panel" aria-label="Live preview">
+              <Preview />
+              <Export />
+            </aside>
+          </main>
+        </div>
+      </div>
       <Toast />
     </div>
   );
