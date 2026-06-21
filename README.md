@@ -8,13 +8,6 @@ color schemes (Base16, Base24, Tinted8) and exporting them as scheme YAML.
 > lived as the `tinty studio` CLI subcommand). The app itself is being rebuilt
 > here with a modern framework + build tooling.
 
-## Start here
-
-- **[SPEC.md](./SPEC.md)** — what the product is and the exact domain logic
-  (Tinted8 derivation, YAML formats, preview mappings). Framework-agnostic.
-- **[HANDOFF.md](./HANDOFF.md)** — how to build it: recommended stack, project
-  structure, the port plan, deploy, and conventions.
-
 ## What's in the repo
 
 | Path | What |
