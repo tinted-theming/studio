@@ -5,6 +5,8 @@ dist/
 .wrangler/
 .env
 .env.*
+.vite
 
 # generated parity harness artifact (regenerate via npm run parity:extract)
 scripts/parity/parity.png
+wrangler.json*
