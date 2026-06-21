@@ -1093,6 +1093,122 @@ input:focus-visible {
   border-bottom-color: var(--invalid);
 }
 
+/* ---------- Image extraction: dropzone + dialog ---------- */
+
+.dropzone-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 4vw, 48px);
+  background: color-mix(in oklab, var(--sheet) 78%, transparent);
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+
+.dropzone-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border: 1.5px dashed var(--accent-line);
+  color: var(--ink-1);
+  font: 600 13px/1.4 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+}
+
+.extract-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 4vw, 40px);
+  background: color-mix(in oklab, var(--ink-1) 32%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.extract-dialog {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 60px);
+  overflow: auto;
+  padding: 22px clamp(18px, 3vw, 28px) 20px;
+  background: var(--sheet);
+  border: 1px solid var(--ink-2);
+  box-shadow: 6px 6px 0 color-mix(in oklab, var(--ink-1) 16%, transparent);
+}
+
+.extract-body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-top: 4px;
+}
+
+.extract-thumb {
+  flex: none;
+  width: 132px;
+  height: 132px;
+  object-fit: cover;
+  border: 1px solid var(--rule);
+  background: color-mix(in oklab, var(--ink-1) 4%, transparent);
+}
+
+.extract-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.extract-fields .field-nameplate input {
+  font: 400 22px/1.2 var(--font-display);
+}
+
+.extract-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 26px;
+}
+
+.extract-note {
+  margin: 18px 0 0;
+  font: 500 10.5px/1.4 var(--font-mono);
+  letter-spacing: 0.04em;
+  color: var(--ink-4);
+}
+
+.extract-status {
+  margin: 10px 0 0;
+  font: 500 11px/1.4 var(--font-mono);
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+}
+
+.extract-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+@media (max-width: 520px) {
+  .extract-body {
+    flex-direction: column;
+  }
+  .extract-thumb {
+    width: 100%;
+    height: 150px;
+  }
+}
+
 /* ---------- Toast ---------- */
 
 .toast {

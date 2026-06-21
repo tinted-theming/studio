@@ -66,6 +66,8 @@ export interface BaseWorkspace {
   palette: BasePalette;
   loadedFrom: string | null;
   touched: boolean;
+  /** True when `meta.author` was typed by the user (vs taken from a preset). */
+  authorByUser?: boolean;
 }
 
 /** The Tinted8 workspace document (adds overrides). */
@@ -75,6 +77,8 @@ export interface Tinted8Workspace {
   overrides: Tinted8Overrides;
   loadedFrom: string | null;
   touched: boolean;
+  /** True when `meta.author` was typed by the user (vs taken from a preset). */
+  authorByUser?: boolean;
 }
 
 /** A fully-resolved Tinted8 scheme: 33 palette slots + 45 ui + 105 syntax. */

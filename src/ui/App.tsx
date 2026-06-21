@@ -11,6 +11,8 @@ import { PaletteCard } from "./components/PaletteCard";
 import { Preview } from "./components/Preview";
 import { Export } from "./components/Export";
 import { Toast } from "./components/Toast";
+import { Dropzone } from "./components/Dropzone";
+import { ExtractDialog } from "./components/ExtractDialog";
 
 export function App() {
   const theme = useStore((s) => s.theme);
@@ -98,6 +100,8 @@ export function App() {
           </main>
         </div>
       </div>
+      <Dropzone />
+      <ExtractDialog />
       <Toast />
     </div>
   );

@@ -1,7 +1,9 @@
+import { useRef } from "react";
 import { useStore } from "../../state/store";
 import { useLibrary } from "../../state/library";
 import { setHash } from "../../state/deeplink";
-import { IconRedo, IconReset, IconTrash, IconUndo } from "../icons";
+import { useExtract } from "../extract";
+import { IconImage, IconRedo, IconReset, IconTrash, IconUndo } from "../icons";
 import { LibraryPicker } from "./LibraryPicker";
 
 export function EditorToolbar() {
@@ -14,6 +16,8 @@ export function EditorToolbar() {
   const clearAll = useStore((s) => s.clearAll);
   const loadScheme = useStore((s) => s.loadScheme);
   const byId = useLibrary((s) => s.byId);
+  const openExtract = useExtract((s) => s.openWith);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   // Reset reverts to the scheme this workspace was loaded from, or stock if it
   // was started blank (SPEC §3.9). Confirmed; not undoable in one step.
@@ -50,6 +54,25 @@ export function EditorToolbar() {
     <div className="editor-toolbar">
       <LibraryPicker />
       <div className="toolbar-actions">
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) openExtract(file);
+            e.target.value = "";
+          }}
+        />
+        <button
+          className="button button-ghost reset-button"
+          title="Extract a scheme from an image"
+          onClick={() => fileInput.current?.click()}
+        >
+          <IconImage />
+          <span>From image</span>
+        </button>
         <div className="history-controls" role="group" aria-label="History">
           <button
             className="icon-button"

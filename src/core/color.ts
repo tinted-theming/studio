@@ -111,3 +111,68 @@ export function hexToHsl(hex: string): Hsl {
 export function hslToHex(hsl: Hsl): string {
   return rgbToHex(hslToRgb(hsl));
 }
+
+/* ---------- sRGB ↔ linear ↔ XYZ ↔ Yxy (mirrors the Rust `palette` crate) ----------
+ *
+ * Used only by image extraction (SPEC §8 / IMAGE-EXTRACTION.md §4): the Rust
+ * `tinted-scheme-extractor` measures "luma" as CIE Y (linear-light luminance),
+ * NOT HSL lightness, and sets luminance in xyY while preserving chromaticity.
+ * These operate on sRGB channels normalized to 0..1 (not the 0..255 used by the
+ * RGB helpers above). Ported verbatim from the verified reference. */
+
+/** A point in CIE xyY: Y is luminance (0..1), x/y are chromaticity. */
+export interface Yxy {
+  Y: number;
+  x: number;
+  y: number;
+}
+
+type Rgb01 = { r: number; g: number; b: number };
+
+/** sRGB-encoded channel (0..1) → linear-light (0..1). */
+export function srgbToLinear(c: number): number {
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+/** Linear-light channel (0..1) → sRGB-encoded (0..1), clamped. */
+export function linearToSrgb(c: number): number {
+  c = clamp01(c);
+  return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+}
+
+/**
+ * sRGB (0..1 channels) → CIE xyY. For black (X+Y+Z ≤ 0) x/y fall back to the
+ * D65 white point so that re-setting a new luminance yields a neutral gray
+ * rather than NaN.
+ */
+export function srgbToYxy(rgb: Rgb01): Yxy {
+  const rl = srgbToLinear(rgb.r),
+    gl = srgbToLinear(rgb.g),
+    bl = srgbToLinear(rgb.b);
+  const X = 0.4124564 * rl + 0.3575761 * gl + 0.1804375 * bl;
+  const Y = 0.2126729 * rl + 0.7151522 * gl + 0.072175 * bl;
+  const Z = 0.0193339 * rl + 0.119192 * gl + 0.9503041 * bl;
+  const sum = X + Y + Z;
+  if (sum <= 0) return { Y: 0, x: 0.3127, y: 0.329 };
+  return { Y, x: X / sum, y: Y / sum };
+}
+
+/** CIE xyY → sRGB (0..1 channels). y ≤ 0 yields black. */
+export function yxyToSrgb({ Y, x, y }: Yxy): Rgb01 {
+  if (y <= 0) return { r: 0, g: 0, b: 0 };
+  const X = (x / y) * Y;
+  const Z = ((1 - x - y) / y) * Y;
+  const rl = 3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z;
+  const gl = -0.969266 * X + 1.8760108 * Y + 0.041556 * Z;
+  const bl = 0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z;
+  return { r: linearToSrgb(rl), g: linearToSrgb(gl), b: linearToSrgb(bl) };
+}
+
+/** CIE relative luminance (Y) of an sRGB color with channels in 0..1. */
+export function luminance(rgb: Rgb01): number {
+  return (
+    0.2126729 * srgbToLinear(rgb.r) +
+    0.7151522 * srgbToLinear(rgb.g) +
+    0.072175 * srgbToLinear(rgb.b)
+  );
+}

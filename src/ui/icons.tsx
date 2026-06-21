@@ -63,3 +63,11 @@ export const IconClose = () => (
     <path d="M6 6l12 12M18 6L6 18" />
   </Svg>
 );
+
+export const IconImage = () => (
+  <Svg>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <circle cx="8.5" cy="9.5" r="1.5" />
+    <path d="M21 15l-5-5L5 21" />
+  </Svg>
+);

@@ -18,9 +18,11 @@ import {
   isOverridden,
   normalizeVariant,
   reconstructTinted8,
+  type BasePalette,
   type BaseWorkspace,
   type Flavor,
   type RowDescriptor,
+  type SchemeColor,
   type SchemeEntry,
   type Tinted8Workspace,
   type Variant,
@@ -51,12 +53,14 @@ function freshData(): PersistData {
       palette: { ...DEFAULT_BASE16 },
       loadedFrom: null,
       touched: false,
+      authorByUser: false,
     },
     base24: {
       meta: { name: "Untitled", author: "", slug: "", description: "", variant: "dark" },
       palette: { ...DEFAULT_BASE24 },
       loadedFrom: null,
       touched: false,
+      authorByUser: false,
     },
     tinted8: {
       meta: {
@@ -72,6 +76,7 @@ function freshData(): PersistData {
       overrides: { palette: {}, ui: {}, syntax: {} },
       loadedFrom: null,
       touched: false,
+      authorByUser: false,
     },
   };
 }
@@ -96,6 +101,7 @@ function mergeData(saved: unknown): PersistData {
       target.loadedFrom = w.loadedFrom as string | null;
     }
     target.touched = Boolean(w.touched);
+    target.authorByUser = Boolean(w.authorByUser);
     if (flavor === "tinted8" && w.overrides) {
       const ov = w.overrides as Tinted8Workspace["overrides"];
       base.tinted8.overrides.palette = ov.palette || {};
@@ -183,6 +189,14 @@ export interface StudioState extends PersistData {
   clearAll: () => void;
   /** Load a known scheme into its workspace as a pristine starting point. */
   loadScheme: (entry: SchemeEntry) => boolean;
+  /** Apply an image-extracted palette as an editable, unsaved draft. */
+  applyExtractedScheme: (
+    system: "base16" | "base24",
+    palette: BasePalette,
+    name: string,
+    author: string,
+    variant: Variant,
+  ) => boolean;
 }
 
 export const useStore = create<StudioState>((set, get) => {
@@ -259,6 +273,9 @@ export const useStore = create<StudioState>((set, get) => {
       pushHistory(`meta:${flavor}:${key}`);
       mutateActive((data) => {
         (data[flavor].meta as unknown as Record<string, string>)[key] = value;
+        // Editing the author field marks it as the user's own (so it can prefill
+        // new-scheme dialogs, unlike an author taken from a preset).
+        if (key === "author") data[flavor].authorByUser = true;
       });
     },
 
@@ -354,6 +371,40 @@ export const useStore = create<StudioState>((set, get) => {
       set({ ...data, invalidSlots: new Set(), coalesceKey: null });
       return true;
     },
+
+    applyExtractedScheme: (system, palette, name, author, variant) => {
+      const wrapped: Record<string, SchemeColor> = {};
+      for (const k of Object.keys(palette)) wrapped[k] = { hex_str: palette[k]! };
+      const entry: SchemeEntry = {
+        id: "",
+        system,
+        name: name || "Untitled",
+        author: author || "",
+        slug: "",
+        variant,
+        palette: wrapped,
+      };
+      pushHistory(`extract:${system}`);
+      const data = clone(pickData(get()));
+      if (!applyEntry(data, entry)) {
+        const st = get();
+        const undoStack = st.undoStack.slice(0, -1);
+        set({ undoStack, canUndo: undoStack.length > 0 });
+        return false;
+      }
+      // An extraction is an unsaved draft: mark it touched and drop any loaded /
+      // deep-link identity so Reset falls back to stock and a reload restores
+      // the draft without a confirm prompt.
+      data[system].touched = true;
+      data[system].loadedFrom = null;
+      // The author was confirmed by the user in the extract dialog (the dialog
+      // only ever prefills a user-entered author), so treat it as their own.
+      data[system].authorByUser = Boolean(author.trim());
+      saveData(data);
+      set({ ...data, invalidSlots: new Set(), coalesceKey: null });
+      if (typeof location !== "undefined" && location.hash) setHash("");
+      return true;
+    },
   };
 });
 
@@ -393,6 +444,8 @@ function applyEntry(data: PersistData, entry: SchemeEntry): boolean {
       variant,
     };
     ws.loadedFrom = entry.id;
+    // The author came from a preset, not the user — don't prefill it elsewhere.
+    ws.authorByUser = false;
     data.flavor = flavor;
     return true;
   }
@@ -410,6 +463,7 @@ function applyEntry(data: PersistData, entry: SchemeEntry): boolean {
     Object.assign(t8.palette, extractTinted8BaseNormals(entry));
     t8.overrides = reconstructTinted8(t8.palette, variant, entry);
     t8.loadedFrom = entry.id;
+    t8.authorByUser = false;
     data.flavor = "tinted8";
     return true;
   }
