@@ -16,12 +16,14 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "parity:extract": "tsx scripts/parity/run.mts",
+    "build:grammars": "node scripts/build-grammars.mjs",
     "check": "npm run typecheck && npm run lint && npm run test"
   },
   "dependencies": {
     "colorthief": "^3.3.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "web-tree-sitter": "^0.25.10",
     "zustand": "^4.5.5"
   },
   "devDependencies": {
@@ -35,6 +37,7 @@
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.14",
     "prettier": "^3.3.3",
+    "tree-sitter-cli": "^0.26.9",
     "tsx": "^4.22.4",
     "typescript": "^5.6.3",
     "vite": "^5.4.10",

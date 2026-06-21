@@ -358,7 +358,7 @@ input:focus-visible {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   grid-template-rows: minmax(0, 1fr);
   gap: clamp(22px, 3.5vw, 48px);
   width: 100%;
@@ -434,10 +434,9 @@ input:focus-visible {
 
 .editor-toolbar {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 16px;
-  flex-wrap: wrap;
   padding-bottom: 18px;
   border-bottom: 1px solid var(--rule);
 }
@@ -447,7 +446,7 @@ input:focus-visible {
   flex-direction: column;
   gap: 7px;
   min-width: 0;
-  flex: 1;
+  flex: none;
 }
 
 .library-picker[hidden] {
@@ -463,7 +462,7 @@ input:focus-visible {
 }
 
 .library-picker .language-select-wrapper {
-  max-width: 360px;
+  width: 100%;
 }
 
 #library-select {
@@ -480,6 +479,7 @@ input:focus-visible {
 .toolbar-actions {
   display: flex;
   align-items: stretch;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -895,8 +895,14 @@ input:focus-visible {
   background: var(--preview-bg, color-mix(in oklab, var(--ink-1) 2.5%, transparent));
 }
 
+.ts-editor {
+  position: relative;
+  border: 1px solid var(--rule);
+}
+
 .code-preview::before,
-.yaml-preview::before {
+.yaml-preview::before,
+.ts-editor::before {
   content: "";
   position: absolute;
   inset: -5px;
@@ -921,6 +927,125 @@ input:focus-visible {
   font: 12.5px/1.62 var(--font-mono);
   white-space: pre;
   tab-size: 2;
+}
+
+/* Tree-sitter code editor: a transparent <textarea> over a highlighted <pre>. */
+.ts-editor {
+  min-height: clamp(360px, 58vh, 760px);
+  overflow: hidden;
+  /* fallback colors before the highlight table resolves; overridden inline */
+  color: var(--ink-1);
+}
+
+.ts-highlight,
+.ts-input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 18px;
+  border: 0;
+  /* Integer line-height: fractional values (e.g. 20.25px) get rounded per line by
+     the layout engine, so decoration bands drift further from the text the lower
+     the line. An integer keeps rendered lines and decorations stepping in lockstep. */
+  font: 12.5px/20px var(--font-mono);
+  white-space: pre;
+  tab-size: 2;
+  letter-spacing: 0;
+  overflow: auto;
+}
+
+.ts-highlight {
+  pointer-events: none;
+  color: inherit;
+  background: transparent;
+}
+
+.ts-highlight code {
+  font: inherit;
+  color: inherit;
+}
+
+.ts-input {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  color: transparent;
+  caret-color: currentColor;
+  resize: none;
+  outline: none;
+  -webkit-text-fill-color: transparent; /* keep Safari from painting the text */
+}
+
+/* Native selection is suppressed; the Visual highlight is drawn behind the text
+   on .ts-decorations so the syntax colors stay legible on top. */
+.ts-input::selection {
+  background: transparent;
+}
+.ts-input::-moz-selection {
+  background: transparent;
+}
+
+/* Decoration layer: current-line band (CursorLine) + selection rects (Visual),
+   behind the highlighted text. */
+.ts-decorations {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ts-cursorline {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.ts-selection {
+  position: absolute;
+}
+
+/* Hidden ruler used to measure monospace character width. */
+.ts-measure {
+  position: absolute;
+  top: -9999px;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  visibility: hidden;
+  white-space: pre;
+  font: 12.5px/20px var(--font-mono);
+  pointer-events: none;
+}
+
+.ts-status {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  padding: 4px 8px;
+  pointer-events: none;
+}
+
+.ts-reset {
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  background: transparent;
+  border: 1px solid var(--rule);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.ts-reset:hover {
+  color: var(--ink-1);
 }
 
 .code-preview.is-palette {

@@ -33,6 +33,7 @@ export type PageTheme = "system" | "light" | "dark";
 
 export const STATE_STORAGE_KEY = "tinted-studio-state";
 export const PAGE_THEME_STORAGE_KEY = "tinted-studio-page-theme";
+export const EDITOR_STORAGE_KEY = "tinted-studio-editor";
 const MAX_HISTORY = 100;
 
 /** The persisted, editable slice (also what undo/redo snapshots). */
@@ -140,6 +141,30 @@ function saveData(data: PersistData): void {
   }
 }
 
+/**
+ * Per-language editable code-editor content. Kept separate from PersistData (and
+ * thus out of scheme undo/redo) — the editor's <textarea> has native undo, and
+ * code edits must not interact with palette history.
+ */
+function loadEditorContent(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(EDITOR_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveEditorContent(content: Record<string, string>): void {
+  try {
+    localStorage.setItem(EDITOR_STORAGE_KEY, JSON.stringify(content));
+  } catch {
+    /* storage full / unavailable — ignore */
+  }
+}
+
 function loadTheme(): PageTheme {
   try {
     const t = localStorage.getItem(PAGE_THEME_STORAGE_KEY);
@@ -164,6 +189,8 @@ function clone(data: PersistData): PersistData {
 
 export interface StudioState extends PersistData {
   theme: PageTheme;
+  /** Per-language code-editor content (user edits; falls back to DEFAULT_PRESETS). */
+  editorContent: Record<string, string>;
   /** Row keys whose input currently holds invalid/empty text (blocks export). */
   invalidSlots: Set<string>;
   // history (transient, not persisted)
@@ -176,6 +203,10 @@ export interface StudioState extends PersistData {
   // actions
   setFlavor: (flavor: Flavor) => void;
   setLanguage: (language: string) => void;
+  /** Replace a language's editor content (persisted, no history). */
+  setEditorContent: (language: string, text: string) => void;
+  /** Drop a language's edits so it reverts to its default preset. */
+  resetEditorContent: (language: string) => void;
   setTheme: (theme: PageTheme) => void;
   setMeta: (key: string, value: string) => void;
   setVariant: (variant: Variant) => void;
@@ -239,6 +270,7 @@ export const useStore = create<StudioState>((set, get) => {
   return {
     ...loadData(),
     theme: loadTheme(),
+    editorContent: loadEditorContent(),
     invalidSlots: new Set<string>(),
     undoStack: [],
     redoStack: [],
@@ -256,6 +288,19 @@ export const useStore = create<StudioState>((set, get) => {
     setLanguage: (language) => {
       set({ language });
       saveData(pickData(get()));
+    },
+
+    setEditorContent: (language, text) => {
+      const editorContent = { ...get().editorContent, [language]: text };
+      saveEditorContent(editorContent);
+      set({ editorContent });
+    },
+
+    resetEditorContent: (language) => {
+      const editorContent = { ...get().editorContent };
+      delete editorContent[language];
+      saveEditorContent(editorContent);
+      set({ editorContent });
     },
 
     setTheme: (theme) => {

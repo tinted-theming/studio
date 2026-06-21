@@ -1,6 +1,5 @@
-import type { CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import {
-  FALLBACK_LANGUAGE,
   PALETTE_LANGUAGE,
   PREVIEW_ROLES,
   normalizeHex,
@@ -13,16 +12,32 @@ import {
 import { useStore } from "../../state/store";
 import { useEffectiveTinted8 } from "../useEffective";
 import { SNIPPETS } from "../snippets";
+import { DEFAULT_PRESETS } from "../snippets/presets";
+import { isSupportedLanguage, SUPPORTED_LANGUAGES } from "../../highlight";
+import { buildHighlightTable, schemeToBaseSlots, type SchemeForSlots } from "../../theme";
+import { CodeEditor } from "./CodeEditor";
 
-const LANGUAGES: Array<[string, string]> = [
-  ["rust", "Rust"],
-  ["kotlin", "Kotlin"],
-  ["lisp", "Lisp"],
-  ["elixir", "Elixir"],
-  ["haskell", "Haskell"],
-  ["diff", "Diff"],
-  ["terminal", "Terminal"],
-  ["palette", "Palette"],
+const DIFF_LANGUAGE = "diff";
+const TERMINAL_LANGUAGE = "terminal";
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  rust: "Rust",
+  typescript: "TypeScript",
+  python: "Python",
+  lua: "Lua",
+  go: "Go",
+  json: "JSON",
+  bash: "Bash",
+  diff: "Diff",
+  terminal: "Terminal",
+  palette: "Palette",
+};
+
+const LANGUAGES: string[] = [
+  ...SUPPORTED_LANGUAGES,
+  DIFF_LANGUAGE,
+  TERMINAL_LANGUAGE,
+  PALETTE_LANGUAGE,
 ];
 
 function usePreviewScheme(): PreviewScheme {
@@ -46,14 +61,28 @@ function usePreviewScheme(): PreviewScheme {
 export function Preview() {
   const language = useStore((s) => s.language);
   const setLanguage = useStore((s) => s.setLanguage);
+  const editorContent = useStore((s) => s.editorContent);
+  const setEditorContent = useStore((s) => s.setEditorContent);
+  const resetEditorContent = useStore((s) => s.resetEditorContent);
   const scheme = usePreviewScheme();
 
+  // Resolved highlight table for the code editor (recomputed when the scheme changes).
+  const table = useMemo(
+    () => buildHighlightTable(schemeToBaseSlots(scheme as unknown as SchemeForSlots)),
+    [scheme],
+  );
+
+  const isCode = isSupportedLanguage(language);
+  const isPalette = language === PALETTE_LANGUAGE;
+  const hasEdits = editorContent[language] != null;
+  const content = isCode ? (editorContent[language] ?? DEFAULT_PRESETS[language] ?? "") : "";
+
+  // --preview-* vars drive the fixed Terminal snippet and the palette grid.
   const styleVars: Record<string, string> = {};
   for (const role of PREVIEW_ROLES) styleVars[`--preview-${role}`] = previewColor(scheme, role);
 
-  const isPalette = language === PALETTE_LANGUAGE;
   let codeStyle: CSSProperties = {};
-  let body: { __html: string };
+  let body: { __html: string } | null = null;
   if (isPalette) {
     const { cols, rows } = paletteGridShape(scheme.system);
     codeStyle = {
@@ -68,8 +97,9 @@ export function Preview() {
         })
         .join(""),
     };
-  } else {
-    body = { __html: SNIPPETS[language] ?? SNIPPETS[FALLBACK_LANGUAGE]! };
+  } else if (!isCode) {
+    // Fixed, non-editable snippets (Terminal, Diff).
+    body = { __html: SNIPPETS[language] ?? SNIPPETS[TERMINAL_LANGUAGE]! };
   }
 
   return (
@@ -77,6 +107,16 @@ export function Preview() {
       <div className="preview-toolbar">
         <h2 className="section-label">Preview</h2>
         <span className="plate-rule" />
+        {isCode && hasEdits && (
+          <button
+            type="button"
+            className="ts-reset"
+            onClick={() => resetEditorContent(language)}
+            title="Reset to the default sample"
+          >
+            Reset
+          </button>
+        )}
         <div className="language-select-wrapper">
           <select
             id="language-select"
@@ -84,20 +124,29 @@ export function Preview() {
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
           >
-            {LANGUAGES.map(([value, label]) => (
+            {LANGUAGES.map((value) => (
               <option key={value} value={value}>
-                {label}
+                {LANGUAGE_LABELS[value] ?? value}
               </option>
             ))}
           </select>
         </div>
       </div>
-      <pre
-        className={"code-preview" + (isPalette ? " is-palette" : "")}
-        style={styleVars as CSSProperties}
-      >
-        <code style={codeStyle} dangerouslySetInnerHTML={body} />
-      </pre>
+      {isCode ? (
+        <CodeEditor
+          language={language}
+          value={content}
+          table={table}
+          onChange={(text) => setEditorContent(language, text)}
+        />
+      ) : (
+        <pre
+          className={"code-preview" + (isPalette ? " is-palette" : "")}
+          style={styleVars as CSSProperties}
+        >
+          <code style={codeStyle} dangerouslySetInnerHTML={body!} />
+        </pre>
+      )}
     </div>
   );
 }
