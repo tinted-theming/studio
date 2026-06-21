@@ -15,7 +15,7 @@ import { SNIPPETS } from "../snippets";
 import { DEFAULT_PRESETS } from "../snippets/presets";
 import { isSupportedLanguage, SUPPORTED_LANGUAGES } from "../../highlight";
 import { buildHighlightTable, schemeToBaseSlots, type SchemeForSlots } from "../../theme";
-import { CodeEditor } from "./CodeEditor";
+import { CodeMirrorEditor } from "./CodeMirrorEditor";
 
 const DIFF_LANGUAGE = "diff";
 const TERMINAL_LANGUAGE = "terminal";
@@ -68,6 +68,8 @@ export function Preview() {
   const editorContent = useStore((s) => s.editorContent);
   const setEditorContent = useStore((s) => s.setEditorContent);
   const resetEditorContent = useStore((s) => s.resetEditorContent);
+  const editorSettings = useStore((s) => s.editorSettings);
+  const setEditorSetting = useStore((s) => s.setEditorSetting);
   const scheme = usePreviewScheme();
 
   // Resolved highlight table for the code editor (recomputed when the scheme changes).
@@ -111,6 +113,39 @@ export function Preview() {
       <div className="preview-toolbar">
         <h2 className="section-label">Preview</h2>
         <span className="plate-rule" />
+        {isCode && (
+          <div className="cm-toggles" role="group" aria-label="Editor options">
+            <button
+              type="button"
+              className={"cm-toggle" + (editorSettings.vim ? " is-on" : "")}
+              aria-pressed={editorSettings.vim}
+              onClick={() => setEditorSetting("vim", !editorSettings.vim)}
+              title="Toggle Vim mode"
+            >
+              Vim
+            </button>
+            <button
+              type="button"
+              className={"cm-toggle" + (editorSettings.relativeLineNumbers ? " is-on" : "")}
+              aria-pressed={editorSettings.relativeLineNumbers}
+              onClick={() =>
+                setEditorSetting("relativeLineNumbers", !editorSettings.relativeLineNumbers)
+              }
+              title="Toggle relative line numbers"
+            >
+              Rel #
+            </button>
+            <button
+              type="button"
+              className={"cm-toggle" + (editorSettings.whitespace ? " is-on" : "")}
+              aria-pressed={editorSettings.whitespace}
+              onClick={() => setEditorSetting("whitespace", !editorSettings.whitespace)}
+              title="Toggle whitespace rendering"
+            >
+              WS
+            </button>
+          </div>
+        )}
         {isCode && hasEdits && (
           <button
             type="button"
@@ -137,10 +172,11 @@ export function Preview() {
         </div>
       </div>
       {isCode ? (
-        <CodeEditor
+        <CodeMirrorEditor
           language={language}
           value={content}
           table={table}
+          settings={editorSettings}
           onChange={(text) => setEditorContent(language, text)}
         />
       ) : (

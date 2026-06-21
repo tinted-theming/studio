@@ -20,6 +20,12 @@
     "check": "npm run typecheck && npm run lint && npm run test"
   },
   "dependencies": {
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/search": "^6.7.1",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.43.1",
+    "@replit/codemirror-indentation-markers": "^6.5.3",
+    "@replit/codemirror-vim": "^6.3.0",
     "colorthief": "^3.3.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

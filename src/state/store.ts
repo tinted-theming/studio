@@ -34,6 +34,19 @@ export type PageTheme = "system" | "light" | "dark";
 export const STATE_STORAGE_KEY = "tinted-studio-state";
 export const PAGE_THEME_STORAGE_KEY = "tinted-studio-page-theme";
 export const EDITOR_STORAGE_KEY = "tinted-studio-editor";
+export const EDITOR_SETTINGS_STORAGE_KEY = "tinted-studio-editor-settings";
+
+/** Global (not per-language) CodeMirror editor preferences. */
+export interface EditorSettings {
+  vim: boolean;
+  relativeLineNumbers: boolean;
+  whitespace: boolean;
+}
+const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
+  vim: false,
+  relativeLineNumbers: false,
+  whitespace: false,
+};
 const MAX_HISTORY = 100;
 
 /** The persisted, editable slice (also what undo/redo snapshots). */
@@ -165,6 +178,25 @@ function saveEditorContent(content: Record<string, string>): void {
   }
 }
 
+function loadEditorSettings(): EditorSettings {
+  try {
+    const raw = localStorage.getItem(EDITOR_SETTINGS_STORAGE_KEY);
+    if (!raw) return { ...DEFAULT_EDITOR_SETTINGS };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_EDITOR_SETTINGS, ...(parsed as Partial<EditorSettings>) };
+  } catch {
+    return { ...DEFAULT_EDITOR_SETTINGS };
+  }
+}
+
+function saveEditorSettings(settings: EditorSettings): void {
+  try {
+    localStorage.setItem(EDITOR_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    /* storage full / unavailable — ignore */
+  }
+}
+
 function loadTheme(): PageTheme {
   try {
     const t = localStorage.getItem(PAGE_THEME_STORAGE_KEY);
@@ -191,6 +223,8 @@ export interface StudioState extends PersistData {
   theme: PageTheme;
   /** Per-language code-editor content (user edits; falls back to DEFAULT_PRESETS). */
   editorContent: Record<string, string>;
+  /** Global CodeMirror editor preferences (vim, relative line numbers, whitespace). */
+  editorSettings: EditorSettings;
   /** Row keys whose input currently holds invalid/empty text (blocks export). */
   invalidSlots: Set<string>;
   // history (transient, not persisted)
@@ -207,6 +241,8 @@ export interface StudioState extends PersistData {
   setEditorContent: (language: string, text: string) => void;
   /** Drop a language's edits so it reverts to its default preset. */
   resetEditorContent: (language: string) => void;
+  /** Toggle/set a global editor preference (persisted). */
+  setEditorSetting: <K extends keyof EditorSettings>(key: K, value: EditorSettings[K]) => void;
   setTheme: (theme: PageTheme) => void;
   setMeta: (key: string, value: string) => void;
   setVariant: (variant: Variant) => void;
@@ -271,6 +307,7 @@ export const useStore = create<StudioState>((set, get) => {
     ...loadData(),
     theme: loadTheme(),
     editorContent: loadEditorContent(),
+    editorSettings: loadEditorSettings(),
     invalidSlots: new Set<string>(),
     undoStack: [],
     redoStack: [],
@@ -301,6 +338,12 @@ export const useStore = create<StudioState>((set, get) => {
       delete editorContent[language];
       saveEditorContent(editorContent);
       set({ editorContent });
+    },
+
+    setEditorSetting: (key, value) => {
+      const editorSettings = { ...get().editorSettings, [key]: value };
+      saveEditorSettings(editorSettings);
+      set({ editorSettings });
     },
 
     setTheme: (theme) => {

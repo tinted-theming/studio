@@ -18,6 +18,28 @@ export interface Style {
   strikethrough?: boolean;
 }
 
+/**
+ * Editor-chrome colors for CodeMirror surfaces, ported from tinted-nvim
+ * `core.lua` (LineNr, MatchParen, Search/IncSearch, Pmenu, NonText, …). Consumed
+ * as CSS custom properties by the CM6 theme.
+ */
+export interface UiColors {
+  lineNr: string; // LineNr → dark_grey (base02)
+  cursorLineNr: string; // CursorLineNr → LineNr
+  gutterBg: string; // gutter background → Normal bg
+  matchParen: string; // MatchParen bg → dark_grey
+  searchBg: string; // Search bg → yellow
+  searchFg: string; // Search fg → darkest_grey
+  incSearchBg: string; // IncSearch bg → orange
+  incSearchFg: string; // IncSearch fg → darkest_grey
+  selectionMatch: string; // occurrence highlight → dark_grey
+  whitespace: string; // Whitespace/NonText (lifted to base02 for legibility)
+  indentGuide: string; // dark_grey
+  indentGuideActive: string; // grey
+  panelBg: string; // Pmenu/StatusLine surface → darkest_grey
+  panelFg: string; // foreground
+}
+
 export interface HighlightTable {
   /** group name → resolved style (only groups that resolve to a color/style) */
   groups: Record<string, Style>;
@@ -28,6 +50,8 @@ export interface HighlightTable {
   cursorLine: string;
   /** Visual bg: base01 (darkest_grey). */
   selection: string;
+  /** Editor-chrome colors for CM6 surfaces (gutter, search, brackets, …). */
+  ui: UiColors;
 }
 
 function withoutLink(spec: HiSpec): HiSpec {
@@ -76,12 +100,31 @@ export function buildHighlightTable(slots: BaseSlots): HighlightTable {
   // CursorLine / Visual groups (tinted-nvim core.lua).
   const base01 = aliases.darkest_grey ?? bg;
   const base00 = aliases.background ?? bg;
+  const base02 = aliases.dark_grey ?? base01;
+  const base03 = aliases.grey ?? base02;
+  const ui: UiColors = {
+    lineNr: base02,
+    cursorLineNr: base02,
+    gutterBg: base00,
+    matchParen: base02,
+    searchBg: aliases.yellow ?? fg,
+    searchFg: base01,
+    incSearchBg: aliases.orange ?? fg,
+    incSearchFg: base01,
+    selectionMatch: base02,
+    whitespace: base02,
+    indentGuide: base02,
+    indentGuideActive: base03,
+    panelBg: base01,
+    panelFg: fg,
+  };
   return {
     groups,
     fg,
     bg,
     cursorLine: blend(base01, base00, 0.6),
     selection: base01,
+    ui,
   };
 }
 
