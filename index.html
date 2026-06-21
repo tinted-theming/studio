@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" data-theme="">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tinted Studio — Scheme Editor</title>
+    <link rel="icon" type="image/png" href="./assets/favicon.png" />
+    <script>
+      // Apply the saved page theme before first paint to avoid a flash of the
+      // default theme (SPEC §3 / §13).
+      (function () {
+        try {
+          var t = localStorage.getItem("tinted-studio-page-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {
+          /* ignore */
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-BwShaSki.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CZ7P1XGQ.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
