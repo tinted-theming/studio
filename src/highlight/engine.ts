@@ -26,6 +26,10 @@ export const SUPPORTED_LANGUAGES = [
   "go",
   "json",
   "bash",
+  "kotlin",
+  "commonlisp",
+  "elixir",
+  "haskell",
 ] as const;
 export type Lang = (typeof SUPPORTED_LANGUAGES)[number];
 

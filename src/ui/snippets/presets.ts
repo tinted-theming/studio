@@ -180,4 +180,95 @@ if [[ -n "$SCHEME" ]]; then
   apply_scheme "$SCHEME"
 fi
 `,
+  kotlin: `// EDIT ME — this code is editable; the preview re-highlights as you type.
+// Use the "Reset" button (top-right of the preview) to restore this sample.
+
+package theming
+
+const val MAX_SLOTS = 16
+
+/** A tinted color scheme. */
+data class Scheme(val name: String, val slots: MutableMap<String, Int> = mutableMapOf()) {
+    fun set(key: String, hex: Int): Scheme {
+        slots[key] = hex
+        return this
+    }
+}
+
+fun main() {
+    val s = Scheme("default-dark")
+        .set("base00", 0x181818)
+        .set("base0B", 0xa1b56c)
+    println("\${s.name} has \${s.slots.size} slots")
+}
+`,
+  commonlisp: `;; EDIT ME — this code is editable; the preview re-highlights as you type.
+;; Use the "Reset" button (top-right of the preview) to restore this sample.
+
+(defparameter *max-slots* 16
+  "Number of slots in a Base16 scheme.")
+
+(defstruct scheme
+  (name "default-dark")
+  (slots (make-hash-table :test #'equal)))
+
+(defun scheme-set (s key hex)
+  "Set HEX for KEY in scheme S, returning S."
+  (setf (gethash key (scheme-slots s)) hex)
+  s)
+
+(let ((s (make-scheme)))
+  (scheme-set s "base00" #x181818)
+  (scheme-set s "base0B" #xa1b56c)
+  (format t "~a has ~d slots~%"
+          (scheme-name s)
+          (hash-table-count (scheme-slots s))))
+`,
+  elixir: `# EDIT ME — this code is editable; the preview re-highlights as you type.
+# Use the "Reset" button (top-right of the preview) to restore this sample.
+
+defmodule Scheme do
+  @moduledoc "A tinted color scheme."
+  @max_slots 16
+
+  defstruct name: "default-dark", slots: %{}
+
+  @doc "Set \`hex\` for \`key\`, returning the updated scheme."
+  def set(%__MODULE__{slots: slots} = scheme, key, hex) do
+    %{scheme | slots: Map.put(slots, key, hex)}
+  end
+
+  def demo do
+    %Scheme{}
+    |> set("base00", 0x181818)
+    |> set("base0B", 0xA1B56C)
+    |> then(fn s -> IO.puts("#{s.name} has #{map_size(s.slots)} slots") end)
+  end
+end
+`,
+  haskell: `-- EDIT ME — this code is editable; the preview re-highlights as you type.
+-- Use the "Reset" button (top-right of the preview) to restore this sample.
+
+module Scheme (Scheme (..), setSlot) where
+
+import qualified Data.Map as Map
+import Data.Map (Map)
+
+maxSlots :: Int
+maxSlots = 16
+
+-- | A tinted color scheme.
+data Scheme = Scheme
+  { name  :: String
+  , slots :: Map String Int
+  }
+
+setSlot :: String -> Int -> Scheme -> Scheme
+setSlot key hex s = s { slots = Map.insert key hex (slots s) }
+
+main :: IO ()
+main = do
+  let s = setSlot "base0B" 0xA1B56C (setSlot "base00" 0x181818 (Scheme "default-dark" Map.empty))
+  putStrLn (name s ++ " has " ++ show (Map.size (slots s)) ++ " slots")
+`,
 };
