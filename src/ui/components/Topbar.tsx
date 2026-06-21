@@ -13,7 +13,11 @@ export function Topbar() {
   return (
     <header className="topbar">
       <div className="brand">
-        <img className="brand-logo" src="/assets/tinted-theming-logo.png" alt="Tinted Theming" />
+        <img
+          className="brand-logo"
+          src={`${import.meta.env.BASE_URL}assets/tinted-theming-logo.png`}
+          alt="Tinted Theming"
+        />
         <div className="brand-text">
           <h1>Tinted Studio</h1>
           <p className="brand-tagline">Build &amp; export a color scheme</p>
