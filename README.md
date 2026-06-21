@@ -3,11 +3,6 @@
 A static, client-only web app for crafting [Tinted Theming](https://github.com/tinted-theming)
 color schemes (Base16, Base24, Tinted8) and exporting them as scheme YAML.
 
-> **Status: pre-build.** This repo currently holds the spec, the engineering
-> handoff, and the preserved artifacts from the original implementation (which
-> lived as the `tinty studio` CLI subcommand). The app itself is being rebuilt
-> here with a modern framework + build tooling.
-
 ## What's in the repo
 
 | Path | What |
