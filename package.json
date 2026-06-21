@@ -17,7 +17,11 @@
     "test:ui": "vitest --ui",
     "parity:extract": "tsx scripts/parity/run.mts",
     "build:grammars": "node scripts/build-grammars.mjs",
-    "check": "npm run typecheck && npm run lint && npm run test"
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "chore:schemes": "sh scripts/refresh-schemes.sh",
+    "chore:grammars": "npm run build:grammars",
+    "chore:grammars:bump": "node scripts/bump-grammars.mjs",
+    "chore": "npm run chore:schemes && npm run chore:grammars"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.3",
