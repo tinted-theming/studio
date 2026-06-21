@@ -330,11 +330,11 @@ input:focus-visible {
   padding: 16px clamp(12px, 2.4vw, 34px) 0;
   background-color: var(--sheet-2);
   background-image: repeating-linear-gradient(
-    45deg,
+    -45deg,
     var(--hatch) 0,
     var(--hatch) 1px,
     transparent 1px,
-    transparent 9px
+    transparent 6px
   );
 }
 
@@ -613,7 +613,7 @@ input:focus-visible {
   margin: 7px 0 0;
   font: 500 11px/1 var(--font-mono);
   letter-spacing: 0.04em;
-  color: var(--ink-4);
+  color: var(--ink-2);
 }
 
 .field-variant {
@@ -1344,6 +1344,12 @@ input:focus-visible {
   --accent-ring: color-mix(in oklab, var(--accent) 45%, transparent);
   --invalid: #e0685c;
   --ws-dot: #2bb5a6;
+}
+
+/* Dark mode: the sheet shadow uses the (now light) --ink-1, which reads as a
+   bright halo — soften it so the sheet only barely lifts off the desk. */
+:root[data-theme="dark"] .sheet {
+  box-shadow: 0 1px 12px color-mix(in oklab, var(--ink-1) 4%, transparent);
 }
 
 /* ---------- Responsive ---------- */
