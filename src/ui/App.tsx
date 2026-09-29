@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { applyTheme, useStore } from "../state/store";
 import { useLibrary } from "../state/library";
-import { hashId, setHash } from "../state/deeplink";
+import { parseHash, restoreHash, setHash } from "../state/deeplink";
 import type { Flavor } from "../core";
 import { Topbar } from "./components/Topbar";
 import { WorkspaceTabs } from "./components/WorkspaceTabs";
@@ -34,8 +34,9 @@ export function App() {
   useEffect(() => {
     if (libStatus !== "ready") return;
     const apply = () => {
-      const id = hashId();
-      if (!id) return;
+      const target = parseHash();
+      if (target?.kind !== "id") return;
+      const id = target.id;
       const entry = useLibrary.getState().byId.get(id);
       if (!entry) return;
       const flavor = String(entry.system).toLowerCase() as Flavor;
@@ -56,7 +57,7 @@ export function App() {
       ) {
         if (st.loadScheme(entry)) setHash(entry.id);
       } else {
-        setHash(useStore.getState()[useStore.getState().flavor].loadedFrom || "");
+        restoreHash(useStore.getState()[useStore.getState().flavor].loadedFrom);
       }
     };
     apply();

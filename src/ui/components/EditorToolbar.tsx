@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useStore } from "../../state/store";
 import { useLibrary } from "../../state/library";
-import { setHash } from "../../state/deeplink";
+import { restoreHash, setHash } from "../../state/deeplink";
 import { useExtract } from "../extract";
 import { IconImage, IconRedo, IconReset, IconTrash, IconUndo } from "../icons";
 import { LibraryPicker } from "./LibraryPicker";
@@ -34,7 +34,7 @@ export function EditorToolbar() {
     }
     if (entry) loadScheme(entry);
     else reset();
-    setHash(useStore.getState()[flavor].loadedFrom || "");
+    restoreHash(useStore.getState()[flavor].loadedFrom);
   };
 
   const onClear = () => {
