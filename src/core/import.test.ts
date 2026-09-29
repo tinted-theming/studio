@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { coerceHex, isLightBackground, parseSchemeDocument, type ImportResult } from "./import";
-import { DEFAULT_BASE16, DEFAULT_BASE24 } from "./tables";
+import { DEFAULT_BASE16, DEFAULT_BASE24, DEFAULT_TINTED8 } from "./tables";
 
 function ok(res: ImportResult) {
   if (!res.ok) throw new Error(`expected ok, got: ${res.errors.join("; ")}`);
@@ -163,5 +163,143 @@ describe("parseSchemeDocument — legacy flat format", () => {
     doc.base0a = doc.base0A;
     delete doc.base0A;
     expect(ok(parseSchemeDocument(doc)).scheme.palette.base0A).toBe(DEFAULT_BASE16.base0A);
+  });
+});
+
+const t8 = (): Record<string, unknown> => ({
+  scheme: {
+    system: "tinted8",
+    supports: { "styling-spec": "0.2.0" },
+    author: "Me",
+    name: "Tee Eight",
+  },
+  variant: "dark",
+  palette: { ...DEFAULT_TINTED8 },
+});
+
+describe("parseSchemeDocument — Tinted8", () => {
+  it("parses the minimal form with empty overrides", () => {
+    const res = ok(parseSchemeDocument(t8()));
+    expect(res.warnings).toEqual([]);
+    expect(res.scheme).toEqual({
+      system: "tinted8",
+      meta: {
+        name: "Tee Eight",
+        author: "Me",
+        slug: "tee-eight",
+        description: "",
+        variant: "dark",
+        family: "",
+        style: "",
+      },
+      palette: DEFAULT_TINTED8,
+      overrides: { palette: {}, ui: {}, syntax: {} },
+    });
+  });
+
+  it("maps supplementals and dim/bright to palette overrides, keeping orange-dim", () => {
+    const doc = t8();
+    Object.assign(doc.palette as object, {
+      orange: "#FF8800",
+      "gray-normal": "#777777",
+      "red-dim": "#aa0000",
+      "orange-dim": "#cc6600",
+    });
+    const res = ok(parseSchemeDocument(doc));
+    expect(res.scheme.overrides!.palette).toEqual({
+      orange: "#ff8800",
+      gray: "#777777",
+      "red-dim": "#aa0000",
+      "orange-dim": "#cc6600",
+    });
+  });
+
+  it("accepts <color>-normal for base colors", () => {
+    const doc = t8();
+    const pal = doc.palette as Record<string, string>;
+    pal["black-normal"] = pal.black!;
+    delete pal.black;
+    expect(ok(parseSchemeDocument(doc)).scheme.palette.black).toBe(DEFAULT_TINTED8.black);
+  });
+
+  it("errors on a missing base color", () => {
+    const doc = t8();
+    delete (doc.palette as Record<string, string>).cyan;
+    expect(errs(parseSchemeDocument(doc))).toContain("Missing base color: cyan");
+  });
+
+  it("reads flat and nested ui/syntax, mapping .default to the parent key", () => {
+    const doc = t8();
+    doc.ui = { global: { background: { normal: "#101010" } } };
+    doc.syntax = {
+      "entity.name.function": "#0000FF",
+      string: { default: "#010101", regexp: "#020202" },
+    };
+    const ov = ok(parseSchemeDocument(doc)).scheme.overrides!;
+    expect(ov.ui).toEqual({ "global.background.normal": "#101010" });
+    expect(ov.syntax).toEqual({
+      "entity.name.function": "#0000ff",
+      string: "#010101",
+      "string.regexp": "#020202",
+    });
+  });
+
+  it("warns on unknown keys and errors on bad token values", () => {
+    const doc = t8();
+    (doc.scheme as Record<string, unknown>).mood = "happy";
+    (doc.palette as Record<string, string>).teal = "#008080";
+    doc.ui = { "not.a.key": "#000000" };
+    doc.extra = 1;
+    const w = ok(parseSchemeDocument(doc)).warnings.join("\n");
+    expect(w).toMatch(/scheme\.mood/);
+    expect(w).toMatch(/"teal"/);
+    expect(w).toMatch(/ui key "not\.a\.key"/);
+    expect(w).toMatch(/"extra"/);
+
+    const bad = t8();
+    bad.syntax = { string: "#nothex" };
+    expect(errs(parseSchemeDocument(bad))[0]).toMatch(/^syntax\.string: /);
+    const notMap = t8();
+    notMap.ui = "red";
+    expect(errs(parseSchemeDocument(notMap))[0]).toMatch(/ui: expected a mapping/);
+  });
+
+  it("falls back to family + style, then slug, for the name", () => {
+    const doc = t8();
+    const head = doc.scheme as Record<string, unknown>;
+    delete head.name;
+    head.family = "Ayu";
+    head.style = "Mirage";
+    const res = ok(parseSchemeDocument(doc));
+    expect(res.scheme.meta).toMatchObject({ name: "Ayu Mirage", family: "Ayu", style: "Mirage" });
+    delete head.family;
+    delete head.style;
+    head.slug = "ayu-mirage";
+    expect(ok(parseSchemeDocument(doc)).scheme.meta.name).toBe("ayu-mirage");
+  });
+
+  it("infers variant from black when missing", () => {
+    const doc = t8();
+    delete doc.variant;
+    (doc.palette as Record<string, string>).black = "#fafafa";
+    expect(ok(parseSchemeDocument(doc)).scheme.meta.variant).toBe("light");
+  });
+
+  it("rejects other scheme.system values", () => {
+    const doc = t8();
+    (doc.scheme as Record<string, unknown>).system = "base16";
+    expect(errs(parseSchemeDocument(doc))[0]).toMatch(/Unsupported scheme\.system/);
+  });
+
+  it("survives self-referential and wide-alias maps", () => {
+    const self: Record<string, unknown> = {};
+    self.global = self;
+    const wide: Record<string, unknown> = {};
+    for (let i = 0; i < 12; i++) wide[`k${i}`] = wide;
+    const a = t8();
+    a.ui = self;
+    a.syntax = wide;
+    const res = ok(parseSchemeDocument(a));
+    expect(res.warnings.join("\n")).toMatch(/nested too deeply|too many entries/);
   });
 });
