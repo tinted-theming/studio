@@ -28,8 +28,10 @@ branch, a local draft) and sharing them via a Studio link.
 
 ## Approach
 
-Parse YAML with **`js-yaml`** (≈40 KB), loaded via dynamic `import()` so it is
-not in the main bundle. The UI/state layer turns text into a plain object; a
+Parse YAML with **`js-yaml` 4** (≈40 KB; v5 is a ≈2× larger rewrite) using its
+**`FAILSAFE_SCHEMA`**, so every scalar stays a string — unquoted legacy hex like
+`282828` or `000e00` is never coerced to a number. Loaded via dynamic `import()`
+so it is not in the main bundle. The UI/state layer turns text into a plain object; a
 **pure normalizer in `core/`** turns that object into Studio data. `core/` never
 sees YAML text and stays library-free — the same injection pattern image
 extraction uses (colorthief output → pure `extractScheme`).
@@ -68,6 +70,8 @@ export function parseSchemeDocument(doc: unknown): ImportResult;
 
 **Normalization rules:**
 
+- Variant inference threshold: relative luminance `> 0.18` (≈ L* 50, the
+  perceptual midpoint) → light.
 - Hex: accept `#RRGGBB`/`RRGGBB` (case-insensitive), store lowercase with `#`.
   Shorthand is normalized via the existing `normalizeHex`. **8-digit / alpha hex
   is an error** (Tinted8 compliance; the builder rejects it).
@@ -83,7 +87,7 @@ export function parseSchemeDocument(doc: unknown): ImportResult;
   - Meta from `scheme.{name, author, family, style, description}`. If `name`
     is absent, fall back to `family` + `style`, then `slug`.
 - `variant`: must be `dark` or `light`. If absent (always, for legacy), infer
-  from `base00` (or Tinted8 `black`) relative luminance (`> 0.5` → light) and
+  from `base00` (or Tinted8 `black`) relative luminance (see threshold above) and
   emit a warning. Any other value → error.
 - `author` missing → allowed (warning); export validation already requires it.
 - Unknown keys → ignored with a warning (one line per key, capped).
@@ -110,7 +114,8 @@ export function toGithubRawUrl(input: string):
 
 ### Deep-link (`src/state/deeplink.ts`)
 
-- New hash form `#url=<encodeURIComponent(originalUrl)>`. Unambiguous: no
+- New hash form `#url=<encodeURIComponent(rawUrl)>` — always the normalized
+  raw URL, so `loadedFrom`, the hash, and share links agree. Unambiguous: no
   snapshot id contains `=`, `:` or `/` (verified against `data/schemes.json`).
 - `parseHash(): { kind: "id"; id } | { kind: "url"; url } | null` replaces ad-hoc
   `hashId()` use in `App.tsx`; `setHash` gains a `url` variant.
@@ -135,8 +140,9 @@ export function toGithubRawUrl(input: string):
 - `fetchSchemeText(rawUrl)`: `fetch` with a 10 s `AbortController` timeout;
   reject non-2xx (message includes status; 404 → "File not found"), reject
   bodies > 256 KB (check `Content-Length`, then actual length).
-- `parseYamlText(text)`: lazy `import("js-yaml")`, `load` with the default
-  (safe) schema; YAML syntax errors surface with line/column.
+- `parseYamlText(text)`: lazy `import("js-yaml")`, `load` with
+  `FAILSAFE_SCHEMA`; YAML syntax errors surface with line/column. Pasted text
+  is capped at the same 256 KB.
 - Pipeline: `text → parseYamlText → parseSchemeDocument → ImportResult`.
 
 ### UI
