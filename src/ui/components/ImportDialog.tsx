@@ -38,7 +38,7 @@ function ResultSummary({ result }: { result: ImportResult | null }) {
 
 /**
  * Modal for loading a scheme from pasted YAML or a GitHub file URL
- * (docs/superpowers/specs/2026-09-28-yaml-import-design.md). Load stays
+ * (SPEC §16). Load stays
  * disabled until the active tab has a successful parse.
  */
 export function ImportDialog() {

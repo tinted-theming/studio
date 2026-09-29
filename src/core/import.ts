@@ -1,6 +1,6 @@
 /**
  * Scheme import — normalize a parsed YAML document into Studio data
- * (docs/superpowers/specs/2026-09-28-yaml-import-design.md).
+ * (SPEC §16).
  *
  * Pure and library-free: the caller parses YAML text (js-yaml FAILSAFE schema,
  * so every scalar arrives as a string) and hands us plain JS values. We detect

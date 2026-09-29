@@ -539,8 +539,6 @@ Live: **https://tinted-studio.bez.dev**
 
 ## 16. Import from YAML (paste / GitHub URL)
 
-Design: `docs/superpowers/specs/2026-09-28-yaml-import-design.md`.
-
 - **Entry points:** the "From YAML" toolbar button (Paste / GitHub URL tabs) and
   `#url=<encodeURIComponent(raw URL)>` deep-links.
 - **Formats:** modern Base16/Base24 (`system:` + `palette:`), Tinted8 (`scheme:`
