@@ -22,9 +22,14 @@ export function EditorToolbar() {
   // Reset reverts to the scheme this workspace was loaded from, or stock if it
   // was started blank (SPEC §3.9). Confirmed; not undoable in one step.
   const onReset = () => {
-    const loadedId = useStore.getState()[flavor].loadedFrom;
-    const entry = loadedId ? byId.get(loadedId) : null;
-    const target = entry ? `“${entry.name}”` : "the default starting colors";
+    const ws = useStore.getState()[flavor];
+    // An imported workspace resets to its import; else to its library entry or stock.
+    const entry = !ws.baseline && ws.loadedFrom ? byId.get(ws.loadedFrom) : null;
+    const target = ws.baseline
+      ? `“${ws.baseline.meta.name}”`
+      : entry
+        ? `“${entry.name}”`
+        : "the default starting colors";
     if (
       !window.confirm(
         `Reset this scheme to ${target}? Your changes will be discarded and this can't be undone.`,

@@ -21,6 +21,7 @@ import {
   type BasePalette,
   type BaseWorkspace,
   type Flavor,
+  type ImportedScheme,
   type RowDescriptor,
   type SchemeColor,
   type SchemeEntry,
@@ -116,6 +117,10 @@ function mergeData(saved: unknown): PersistData {
     }
     target.touched = Boolean(w.touched);
     target.authorByUser = Boolean(w.authorByUser);
+    const baseline = w.baseline as ImportedScheme | null | undefined;
+    if (baseline && typeof baseline === "object" && baseline.system === flavor) {
+      target.baseline = baseline;
+    }
     if (flavor === "tinted8" && w.overrides) {
       const ov = w.overrides as Tinted8Workspace["overrides"];
       base.tinted8.overrides.palette = ov.palette || {};
@@ -256,6 +261,8 @@ export interface StudioState extends PersistData {
   clearAll: () => void;
   /** Load a known scheme into its workspace as a pristine starting point. */
   loadScheme: (entry: SchemeEntry) => boolean;
+  /** Load an imported (pasted / fetched) scheme into its workspace; records it as the Reset baseline. */
+  loadImported: (scheme: ImportedScheme, origin: string | null) => void;
   /** Apply an image-extracted palette as an editable, unsaved draft. */
   applyExtractedScheme: (
     system: "base16" | "base24",
@@ -431,8 +438,13 @@ export const useStore = create<StudioState>((set, get) => {
 
     reset: () => {
       const flavor = get().flavor;
+      const baseline = get()[flavor].baseline;
       pushHistory(`reset:${flavor}`);
-      mutateActive((data) => resetWorkspace(data, flavor), false);
+      mutateActive((data) => {
+        // An imported workspace resets to what was imported, not to stock.
+        if (baseline) applyImported(data, baseline, data[flavor].loadedFrom);
+        else resetWorkspace(data, flavor);
+      }, false);
       set({ invalidSlots: new Set() });
     },
 
@@ -458,6 +470,14 @@ export const useStore = create<StudioState>((set, get) => {
       saveData(data);
       set({ ...data, invalidSlots: new Set(), coalesceKey: null });
       return true;
+    },
+
+    loadImported: (scheme, origin) => {
+      pushHistory(null);
+      const data = clone(pickData(get()));
+      applyImported(data, scheme, origin);
+      saveData(data);
+      set({ ...data, invalidSlots: new Set(), coalesceKey: null });
     },
 
     applyExtractedScheme: (system, palette, name, author, variant) => {
@@ -534,6 +554,7 @@ function applyEntry(data: PersistData, entry: SchemeEntry): boolean {
     ws.loadedFrom = entry.id;
     // The author came from a preset, not the user — don't prefill it elsewhere.
     ws.authorByUser = false;
+    ws.baseline = null;
     data.flavor = flavor;
     return true;
   }
@@ -552,10 +573,37 @@ function applyEntry(data: PersistData, entry: SchemeEntry): boolean {
     t8.overrides = reconstructTinted8(t8.palette, variant, entry);
     t8.loadedFrom = entry.id;
     t8.authorByUser = false;
+    t8.baseline = null;
     data.flavor = "tinted8";
     return true;
   }
   return false;
+}
+
+/**
+ * Replace a workspace with an imported scheme and make it active. Tinted8
+ * overrides are kept exactly as authored. The scheme is deep-copied so the
+ * workspace and its `baseline` never alias the caller's object.
+ */
+function applyImported(data: PersistData, scheme: ImportedScheme, origin: string | null): void {
+  const s = JSON.parse(JSON.stringify(scheme)) as ImportedScheme;
+  const common = { loadedFrom: origin, touched: false, authorByUser: false };
+  if (s.system === "tinted8") {
+    data.tinted8 = {
+      ...common,
+      meta: { ...s.meta },
+      palette: { ...DEFAULT_TINTED8, ...s.palette },
+      overrides: {
+        palette: { ...s.overrides?.palette },
+        ui: { ...s.overrides?.ui },
+        syntax: { ...s.overrides?.syntax },
+      },
+      baseline: s,
+    };
+  } else {
+    data[s.system] = { ...common, meta: { ...s.meta }, palette: { ...s.palette }, baseline: s };
+  }
+  data.flavor = s.system;
 }
 
 function setSlotValue(data: PersistData, flavor: Flavor, desc: RowDescriptor, hex: string): void {
