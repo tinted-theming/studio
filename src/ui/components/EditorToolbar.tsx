@@ -3,7 +3,8 @@ import { useStore } from "../../state/store";
 import { useLibrary } from "../../state/library";
 import { restoreHash, setHash } from "../../state/deeplink";
 import { useExtract } from "../extract";
-import { IconImage, IconRedo, IconReset, IconTrash, IconUndo } from "../icons";
+import { IconFile, IconImage, IconRedo, IconReset, IconTrash, IconUndo } from "../icons";
+import { useImport } from "../import";
 import { LibraryPicker } from "./LibraryPicker";
 
 export function EditorToolbar() {
@@ -17,6 +18,7 @@ export function EditorToolbar() {
   const loadScheme = useStore((s) => s.loadScheme);
   const byId = useLibrary((s) => s.byId);
   const openExtract = useExtract((s) => s.openWith);
+  const openImport = useImport((s) => s.openDialog);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // Reset reverts to the scheme this workspace was loaded from, or stock if it
@@ -77,6 +79,14 @@ export function EditorToolbar() {
         >
           <IconImage />
           <span>From image</span>
+        </button>
+        <button
+          className="button button-ghost reset-button"
+          title="Load a scheme from YAML (paste or GitHub URL)"
+          onClick={() => openImport()}
+        >
+          <IconFile />
+          <span>From YAML</span>
         </button>
         <div className="history-controls" role="group" aria-label="History">
           <button

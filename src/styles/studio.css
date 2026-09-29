@@ -1258,6 +1258,70 @@ input:focus-visible {
   margin-top: 18px;
 }
 
+.import-dialog {
+  width: min(640px, 100%);
+}
+
+.import-tabs {
+  margin: 6px 0 14px;
+}
+
+.import-textarea {
+  display: block;
+  width: 100%;
+  min-height: 240px;
+  resize: vertical;
+  padding: 10px 12px;
+  font: 12px/1.6 var(--font-mono);
+  color: var(--ink-1);
+  background: color-mix(in oklab, var(--ink-1) 2.5%, transparent);
+  border: 1px solid var(--rule);
+}
+
+.import-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.import-url-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.import-url-row .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.import-raw {
+  margin: 8px 0 0;
+  font: 500 10.5px/1.4 var(--font-mono);
+  color: var(--ink-4);
+  word-break: break-all;
+}
+
+.import-summary {
+  margin: 14px 0 0;
+  font: 500 11px/1.4 var(--font-mono);
+  letter-spacing: 0.03em;
+  color: var(--ink-2);
+}
+
+.import-messages {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  max-height: 140px;
+  overflow: auto;
+  font: 11px/1.5 var(--font-mono);
+  color: var(--ink-3);
+}
+
+.import-messages.is-error {
+  margin-top: 14px;
+  color: var(--invalid);
+}
+
 @media (max-width: 520px) {
   .extract-body {
     flex-direction: column;

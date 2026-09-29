@@ -13,6 +13,7 @@ import { Export } from "./components/Export";
 import { Toast } from "./components/Toast";
 import { Dropzone } from "./components/Dropzone";
 import { ExtractDialog } from "./components/ExtractDialog";
+import { ImportDialog } from "./components/ImportDialog";
 
 export function App() {
   const theme = useStore((s) => s.theme);
@@ -103,6 +104,7 @@ export function App() {
       </div>
       <Dropzone />
       <ExtractDialog />
+      <ImportDialog />
       <Toast />
     </div>
   );
