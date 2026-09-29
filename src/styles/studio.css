@@ -1339,7 +1339,9 @@ input:focus-visible {
   left: 50%;
   bottom: 30px;
   transform: translate(-50%, 16px);
-  z-index: 50;
+  /* Above the drop overlay (60) and dialog backdrops (70): feedback raised
+     while a modal is open (Load, Copy share link) must not sit under the blur. */
+  z-index: 80;
   padding: 11px 18px;
   border: 1px solid var(--ink-1);
   background: var(--sheet);
