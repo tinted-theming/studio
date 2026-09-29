@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { applyTheme, useStore } from "../state/store";
 import { useLibrary } from "../state/library";
-import { parseHash, restoreHash, setHash } from "../state/deeplink";
-import type { Flavor } from "../core";
+import { parseHash, restoreHash, setHash, URL_ORIGIN_PREFIX } from "../state/deeplink";
+import { toGithubRawUrl, type Flavor } from "../core";
 import { Topbar } from "./components/Topbar";
 import { WorkspaceTabs } from "./components/WorkspaceTabs";
 import { EditorToolbar } from "./components/EditorToolbar";
@@ -14,6 +14,12 @@ import { Toast } from "./components/Toast";
 import { Dropzone } from "./components/Dropzone";
 import { ExtractDialog } from "./components/ExtractDialog";
 import { ImportDialog } from "./components/ImportDialog";
+import { applyImport } from "./import";
+import { importFromUrl } from "./importYaml";
+import { useToast } from "./toast";
+
+/** The `#url=` import currently in flight (StrictMode runs effects twice in dev). */
+let urlImportInFlight: string | null = null;
 
 export function App() {
   const theme = useStore((s) => s.theme);
@@ -65,6 +71,39 @@ export function App() {
     window.addEventListener("hashchange", apply);
     return () => window.removeEventListener("hashchange", apply);
   }, [libStatus]);
+
+  // `#url=<raw GitHub URL>` deep-links: fetch + import on open and on hash change.
+  // Independent of the snapshot library, which it doesn't need.
+  useEffect(() => {
+    const apply = () => {
+      const target = parseHash();
+      if (target?.kind !== "url") return;
+      const toast = useToast.getState().show;
+      const norm = toGithubRawUrl(target.url);
+      if (!norm.ok) {
+        toast(norm.error);
+        const st = useStore.getState();
+        restoreHash(st[st.flavor].loadedFrom);
+        return;
+      }
+      const origin = URL_ORIGIN_PREFIX + norm.url;
+      const st = useStore.getState();
+      // Already showing this exact import, unedited — nothing to do.
+      if (st[st.flavor].loadedFrom === origin && !st[st.flavor].touched) return;
+      if (urlImportInFlight === origin) return;
+      urlImportInFlight = origin;
+      void importFromUrl(norm.url).then(({ result }) => {
+        urlImportInFlight = null;
+        if (result.ok && applyImport(result.scheme, origin)) return;
+        if (!result.ok) toast(`Couldn't load scheme: ${result.errors[0]}`);
+        const now = useStore.getState();
+        restoreHash(now[now.flavor].loadedFrom);
+      });
+    };
+    apply();
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
+  }, []);
 
   // Keyboard undo/redo, but not while editing a field (so native text undo works).
   useEffect(() => {
