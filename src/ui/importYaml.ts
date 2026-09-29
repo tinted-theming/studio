@@ -18,7 +18,17 @@ const TOO_LARGE = `That file is too large (limit ${MAX_IMPORT_BYTES / 1024} KB).
 export async function parseYamlText(text: string): Promise<ImportResult> {
   if (!text.trim()) return { ok: false, errors: ["Paste some scheme YAML."] };
   if (text.length > MAX_IMPORT_BYTES) return { ok: false, errors: [TOO_LARGE] };
-  const { load, FAILSAFE_SCHEMA, YAMLException } = await import("js-yaml");
+  let yaml: typeof import("js-yaml");
+  try {
+    yaml = await import("js-yaml");
+  } catch {
+    // The lazy chunk can fail to load (offline, or a stale tab after a redeploy).
+    return {
+      ok: false,
+      errors: ["Couldn't load the YAML parser — check your connection and reload."],
+    };
+  }
+  const { load, FAILSAFE_SCHEMA, YAMLException } = yaml;
   let doc: unknown;
   try {
     doc = load(text, { schema: FAILSAFE_SCHEMA });

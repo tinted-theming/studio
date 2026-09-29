@@ -99,7 +99,8 @@ export const useImport = create<ImportState>((set, get) => ({
   setTab: (tab) => set({ tab }),
 
   setText: (text) => {
-    set({ text });
+    // Drop the previous result immediately so Load can't apply stale text.
+    set({ text, pasteResult: null });
     if (parseTimer) clearTimeout(parseTimer);
     const seq = ++parseSeq;
     if (!text.trim()) {
@@ -123,9 +124,12 @@ export const useImport = create<ImportState>((set, get) => ({
     if (!input) return;
     const seq = ++fetchSeq;
     set({ fetching: true, rawUrl: null, urlResult: null });
-    const { rawUrl, result } = await importFromUrl(input);
-    if (seq !== fetchSeq) return;
-    set({ fetching: false, rawUrl, urlResult: result });
+    try {
+      const { rawUrl, result } = await importFromUrl(input);
+      if (seq === fetchSeq) set({ rawUrl, urlResult: result });
+    } finally {
+      if (seq === fetchSeq) set({ fetching: false });
+    }
   },
 
   load: () => {
