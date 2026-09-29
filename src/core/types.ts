@@ -60,6 +60,18 @@ export interface Meta {
   style?: string;
 }
 
+/**
+ * A scheme normalized from imported YAML (paste or GitHub URL). `palette` holds
+ * the required slots (Base16/24) or the 8 base normals (Tinted8); `overrides`
+ * is Tinted8-only and holds exactly what the file authored.
+ */
+export interface ImportedScheme {
+  system: Flavor;
+  meta: Meta;
+  palette: Record<string, string>;
+  overrides?: Tinted8Overrides;
+}
+
 /** A Base16/Base24 workspace document. */
 export interface BaseWorkspace {
   meta: Meta;
@@ -68,6 +80,8 @@ export interface BaseWorkspace {
   touched: boolean;
   /** True when `meta.author` was typed by the user (vs taken from a preset). */
   authorByUser?: boolean;
+  /** The imported scheme this workspace was loaded from; Reset returns here. */
+  baseline?: ImportedScheme | null;
 }
 
 /** The Tinted8 workspace document (adds overrides). */
@@ -79,6 +93,8 @@ export interface Tinted8Workspace {
   touched: boolean;
   /** True when `meta.author` was typed by the user (vs taken from a preset). */
   authorByUser?: boolean;
+  /** The imported scheme this workspace was loaded from; Reset returns here. */
+  baseline?: ImportedScheme | null;
 }
 
 /** A fully-resolved Tinted8 scheme: 33 palette slots + 45 ui + 105 syntax. */

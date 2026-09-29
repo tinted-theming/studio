@@ -11,7 +11,7 @@ import react from "@vitejs/plugin-react";
  */
 function thirdPartyNotices(): Plugin {
   const require = createRequire(import.meta.url);
-  const deps = ["colorthief", "react", "react-dom", "zustand"];
+  const deps = ["colorthief", "js-yaml", "react", "react-dom", "zustand"];
   // Walk up from a resolved entry to the package's own manifest (some packages,
   // e.g. colorthief, don't expose "./package.json" via their exports map).
   const findPkgJson = (startFile: string, name: string): string => {

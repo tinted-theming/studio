@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { applyTheme, useStore } from "../state/store";
 import { useLibrary } from "../state/library";
-import { hashId, setHash } from "../state/deeplink";
+import { parseHash, restoreHash, setHash } from "../state/deeplink";
 import type { Flavor } from "../core";
 import { Topbar } from "./components/Topbar";
 import { WorkspaceTabs } from "./components/WorkspaceTabs";
@@ -13,6 +13,8 @@ import { Export } from "./components/Export";
 import { Toast } from "./components/Toast";
 import { Dropzone } from "./components/Dropzone";
 import { ExtractDialog } from "./components/ExtractDialog";
+import { ImportDialog } from "./components/ImportDialog";
+import { importUrlTarget } from "./urlImport";
 
 export function App() {
   const theme = useStore((s) => s.theme);
@@ -34,8 +36,9 @@ export function App() {
   useEffect(() => {
     if (libStatus !== "ready") return;
     const apply = () => {
-      const id = hashId();
-      if (!id) return;
+      const target = parseHash();
+      if (target?.kind !== "id") return;
+      const id = target.id;
       const entry = useLibrary.getState().byId.get(id);
       if (!entry) return;
       const flavor = String(entry.system).toLowerCase() as Flavor;
@@ -56,13 +59,25 @@ export function App() {
       ) {
         if (st.loadScheme(entry)) setHash(entry.id);
       } else {
-        setHash(useStore.getState()[useStore.getState().flavor].loadedFrom || "");
+        restoreHash(useStore.getState()[useStore.getState().flavor].loadedFrom);
       }
     };
     apply();
     window.addEventListener("hashchange", apply);
     return () => window.removeEventListener("hashchange", apply);
   }, [libStatus]);
+
+  // `#url=<raw GitHub URL>` deep-links: fetch + import on open and on hash change.
+  // Independent of the snapshot library, which it doesn't need.
+  useEffect(() => {
+    const apply = () => {
+      const target = parseHash();
+      if (target?.kind === "url") void importUrlTarget(target.url);
+    };
+    apply();
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
+  }, []);
 
   // Keyboard undo/redo, but not while editing a field (so native text undo works).
   useEffect(() => {
@@ -102,6 +117,7 @@ export function App() {
       </div>
       <Dropzone />
       <ExtractDialog />
+      <ImportDialog />
       <Toast />
     </div>
   );
