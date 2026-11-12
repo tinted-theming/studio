@@ -54,6 +54,45 @@ jobs:
             -c "${{ steps.schemes.outputs.dir }}/config.toml" \
             -d "${{ steps.schemes.outputs.dir }}/data"
 
+      # PRs opened with GITHUB_TOKEN don't trigger other workflows, so the new
+      # snapshot is checked here and the result goes into the PR instead.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check the new snapshot
+        id: check
+        run: |
+          npm ci
+          status=pass
+          npm run typecheck > "$RUNNER_TEMP/typecheck.log" 2>&1 || status=fail
+          npx vitest run --reporter=default --reporter=json \
+            --outputFile.json="$RUNNER_TEMP/vitest.json" > "$RUNNER_TEMP/vitest.log" 2>&1 || status=fail
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+          sha=${{ steps.schemes.outputs.sha }}
+          {
+            echo "Regenerates \`data/schemes.json\` from [tinted-theming/schemes@${sha:0:7}](https://github.com/tinted-theming/schemes/commit/$sha) with tinty $TINTY_VERSION."
+            echo
+            if [ "$status" = pass ]; then
+              echo "✅ Typecheck and tests pass with the new snapshot."
+            else
+              echo "❌ **Checks fail with the new snapshot.** Review before merging."
+              if [ -s "$RUNNER_TEMP/vitest.json" ]; then
+                echo
+                jq -r '.testResults[].assertionResults[] | select(.status == "failed")
+                  | "- \(.fullName): `\(.failureMessages[0] // "" | split("\n")[0])`"' \
+                  "$RUNNER_TEMP/vitest.json" | head -n 30
+              fi
+              echo
+              echo "Full output is in the [workflow run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
+            fi
+            echo
+            echo "Opened by the \`Sync schemes\` workflow; it updates this PR on later runs until it's merged."
+          } > "$RUNNER_TEMP/pr-body.md"
+          cat "$RUNNER_TEMP/typecheck.log" "$RUNNER_TEMP/vitest.log"
+
       - name: Open or update PR
         uses: peter-evans/create-pull-request@v8
         with:
@@ -61,8 +100,5 @@ jobs:
           delete-branch: true
           add-paths: data/schemes.json
           commit-message: "chore: sync data/schemes.json with tinted-theming/schemes@${{ steps.schemes.outputs.sha }}"
-          title: "chore: sync scheme library"
-          body: |
-            Regenerates `data/schemes.json` from [tinted-theming/schemes@${{ steps.schemes.outputs.sha }}](https://github.com/tinted-theming/schemes/commit/${{ steps.schemes.outputs.sha }}) with tinty ${{ env.TINTY_VERSION }}.
-
-            Opened by the `Sync schemes` workflow; it updates this PR on later runs until it's merged.
+          title: "chore: sync scheme library${{ steps.check.outputs.status == 'fail' && ' (checks failing)' || '' }}"
+          body-path: ${{ runner.temp }}/pr-body.md
