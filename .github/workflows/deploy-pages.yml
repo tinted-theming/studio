@@ -28,7 +28,8 @@ jobs:
 
       - run: npm ci
       - run: npm test
-      - run: npm run build # typechecks, then vite build → dist/
+      # Relative base: the site is served from /studio/, not the domain root.
+      - run: npm run build -- --base=./ # typechecks, then vite build → dist/
 
       - uses: actions/upload-pages-artifact@v5
         with:
