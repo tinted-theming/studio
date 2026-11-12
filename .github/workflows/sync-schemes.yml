@@ -1,0 +1,68 @@
+name: Sync schemes
+
+# Keep data/schemes.json in step with tinted-theming/schemes. Regenerates the
+# snapshot with a pinned tinty and opens (or updates) a single PR when it changes.
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # daily, 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-schemes
+  cancel-in-progress: true
+
+env:
+  TINTY_VERSION: v0.35.0
+  TINTY_SHA256: 88e51d3a8f6a4bf33b127b7d2647da55f414d8663129674e7fa48d4c03dce537 # x86_64-unknown-linux-gnu
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install tinty
+        run: |
+          asset=tinty-x86_64-unknown-linux-gnu.tar.gz
+          curl -fsSL -o "$RUNNER_TEMP/$asset" \
+            "https://github.com/tinted-theming/tinty/releases/download/$TINTY_VERSION/$asset"
+          echo "$TINTY_SHA256  $RUNNER_TEMP/$asset" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xzf "$RUNNER_TEMP/$asset" -C "$RUNNER_TEMP/bin" tinty
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Install schemes
+        id: schemes
+        run: |
+          # Empty config + throwaway data dir: only the default schemes repo is cloned.
+          tinty_dir="$RUNNER_TEMP/tinty"
+          mkdir -p "$tinty_dir/data"
+          : > "$tinty_dir/config.toml"
+          tinty -c "$tinty_dir/config.toml" -d "$tinty_dir/data" install
+          repo=$(find "$tinty_dir/data" -maxdepth 3 -type d -name schemes -exec test -d '{}/.git' ';' -print -quit)
+          echo "dir=$tinty_dir" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git -C "$repo" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Regenerate data/schemes.json
+        run: |
+          sh scripts/refresh-schemes.sh \
+            -c "${{ steps.schemes.outputs.dir }}/config.toml" \
+            -d "${{ steps.schemes.outputs.dir }}/data"
+
+      - name: Open or update PR
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: chore/sync-schemes
+          delete-branch: true
+          add-paths: data/schemes.json
+          commit-message: "chore: sync data/schemes.json with tinted-theming/schemes@${{ steps.schemes.outputs.sha }}"
+          title: "chore: sync scheme library"
+          body: |
+            Regenerates `data/schemes.json` from [tinted-theming/schemes@${{ steps.schemes.outputs.sha }}](https://github.com/tinted-theming/schemes/commit/${{ steps.schemes.outputs.sha }}) with tinty ${{ env.TINTY_VERSION }}.
+
+            Opened by the `Sync schemes` workflow; it updates this PR on later runs until it's merged.

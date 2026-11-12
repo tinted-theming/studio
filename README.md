@@ -12,6 +12,6 @@ color schemes (Base16, Base24, Tinted8) and exporting them as scheme YAML.
 | `reference/snippets/` | The 7 syntax-highlight code snippets used by the live preview. |
 | `data/schemes.json` | Local snapshot of the known-scheme library (`tinty list --json`). |
 | `assets/` | Fonts (Space Mono, DM Serif Display, IBM Plex Mono) + logo/favicon. |
-| `scripts/refresh-schemes.sh` | Regenerate `data/schemes.json`. |
+| `scripts/refresh-schemes.sh` | Regenerate `data/schemes.json`. A daily workflow (`.github/workflows/sync-schemes.yml`) runs it against the latest tinted-theming/schemes and opens a PR when it changes. |
 
 
